@@ -8,15 +8,17 @@ import java.util.Random;
 public class Task {
     public int[][] cost = new int[7][7];
     public double[][] pheromone = new double[7][7];
-    public int[][] visitedRoads = new int[7][7];
+    public boolean[][] visitedRoads = new boolean[7][7];
     public char[] symbolsName = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G'};
     public final int TARGET_NUMBER = 6;
+    int sumOfCost = 0;
     public void run(){
-        fillArray(visitedRoads,0);
+        fillArray(visitedRoads);
         initCostMatrix();
         initPheromoneMatrix();
         findWays(0);
-        displayCost(visitedRoads);
+        displayBoolean(visitedRoads);
+        generateNewPheromone();
     }
     public void findWays(int position){
         //System.out.println("---");
@@ -82,6 +84,7 @@ public class Task {
         }else{
             System.out.println("\nFound! I'm at destination: " + symbolsName[id]);
             addCost(visitedRoads,position,id);
+            System.out.println("Total price: " + sumOfCost);
         }
     }
     public int indexOf(Double[] array, double value){
@@ -89,6 +92,17 @@ public class Task {
             if (Math.round(array[i] * 10000.0)/10000.0 == Math.round(value * 10000.0)/10000.0) return i;
         }
         return (-1);
+    }
+    public void generateNewPheromone(){
+        double[][] newPheromone = new double[7][7];
+        for(int r = 0; r<7; r++){
+            for(int c = 0; c<7; c++){
+                if (visitedRoads[r][c]){
+                    newPheromone[r][c] = (0.5 * pheromone[r][c] + (1/((double) sumOfCost)));
+                }
+            }
+        }
+        displayPheromone(newPheromone);
     }
     public void displayArray(Double[] arr){
         for (double v : arr) {
@@ -122,19 +136,29 @@ public class Task {
         cost[5] = new int[]{0, 14, 0, 18, 4, 0, 8};
         cost[6] = new int[]{0, 0, 0, 0, 10, 8, 0};
     }
-    void fillArray(int[][] array, int num){
+    void fillArray(boolean[][] array){
         for (int i = 0; i < array.length; i++) {
             for (int i1 = 0; i1 < array.length; i1++) {
-                array[i][i1] = num;
-                System.out.print(array[i][i1] + " ");
+                array[i][i1] = false;
+                //System.out.print(array[i][i1] + " ");
             }
         }
     }
-    void addCost(int[][] array, int start, int end){
+    void addCost(boolean[][] array, int start, int end){
         int price = cost[start][end];
         System.out.println("price is " + price);
-        array[start][end] += price;
-        array[end][start] += price;
+        sumOfCost+=price;
+        array[start][end] = true;
+        array[end][start] = true;
+    }
+    public void displayBoolean(boolean[][] array){
+        for (boolean[] booleans : array) {
+            for (boolean aBoolean : booleans) {
+                System.out.print(aBoolean + " ");
+            }
+            System.out.println("\n");
+        }
+        System.out.println("\n");
     }
     public void initPheromoneMatrix(){
         for (int r = 0; r < 7; r++) {
