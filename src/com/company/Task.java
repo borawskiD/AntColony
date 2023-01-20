@@ -1,124 +1,72 @@
 package com.company;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Random;
+import java.util.*;
 
 public class Task {
+    public final int TARGET_NUMBER = 6;
+    public final int START_NUMBER = 0;
+    public final int POPULATION_SIZE = 1;
+    public final int AMOUNT_OF_CYCLE = 100;
     public int[][] cost = new int[7][7];
     public double[][] pheromone = new double[7][7];
     public boolean[][] visitedRoads = new boolean[7][7];
     public char[] symbolsName = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G'};
-    public final int TARGET_NUMBER = 6;
-    int sumOfCost = 0;
-    public void run(){
+    public double[][] newPheromone;
+
+    public void run() {
         fillArray(visitedRoads);
         initCostMatrix();
-        initPheromoneMatrix();
-        findWays(0);
-        displayBoolean(visitedRoads);
-        generateNewPheromone();
-    }
-    public void findWays(int position){
-        //System.out.println("---");
-        //System.out.println("I'm here: " + symbolsName[position]);
-        //position - current index
-        int[] possibleWays = cost[position];
-//        for (int possibleWay : possibleWays) {
-//            System.out.print(possibleWay + " ");
-//        }
-//        System.out.println("");
-        double denominator = 0.0;
-        for(int i = 0; i<7; i++){
-            if (possibleWays[i] != 0) {
-                //System.out.println((1/(double)possibleWays[i]));
-                denominator += pheromone[position][i] * (1 /(double) possibleWays[i]);
+        pheromone = initPheromoneMatrix();
+        newPheromone = initPheromoneMatrix();
+        Ant[] population = new Ant[POPULATION_SIZE];
+
+        for (int iterations = 0; iterations < AMOUNT_OF_CYCLE; iterations++) {
+            System.out.println("\nIteration number: " + (iterations + 1));
+            for (int i = 0; i < POPULATION_SIZE; i++) {
+                System.out.println("\nAnt number: " + (i + 1));
+                population[i] = new Ant(cost, pheromone, TARGET_NUMBER, START_NUMBER);
+                population[i].goAhead();
+                newPheromone = addPheromones(newPheromone, population[i].getNewPheromone());
             }
+            pheromone = newPheromone;
         }
-        Double[] probability = new Double[7];
-        for (int i = 0; i < possibleWays.length; i++) {
-            if(possibleWays[i] != 0){
-                double numerator = pheromone[position][i] * (1/(double) possibleWays[i]);
-                probability[i] = numerator / denominator;
-                //System.out.println("For " + i + " path probability = " + probability[i]);
-            } else{
-                probability[i] = 0.0;
-            }
-        }
-        Double[] unsorted = Arrays.copyOf(probability,probability.length);
-        Arrays.sort(probability, Collections.reverseOrder());
-        //displayArray(unsorted);
-        //displayArray(probability);
-        double current;;
-        int index = 1;
-        ArrayList<Double> ranges = new ArrayList<>();
-        ranges.add(1.0);
-        //System.out.println(1 - probability[0]);
-        do{
-            ranges.add(ranges.get(index - 1) - probability[(index - 1)]);
-            index++;
-            current = probability[index];
-        }while(current != 0);
-        //System.out.println(ranges);
-        int id = 0;
-        do{
-            Random r = new Random();
-            double rand = r.nextDouble();
-            //System.out.println(rand);
-            for (int i = 0; i < ranges.size(); i++) {
-                if (rand > ranges.get(i)){
-                    //System.out.println(rand + ">" + ranges.get(i));
-                    id = indexOf(unsorted,probability[i-1]);
-                    //System.out.println(indexOf(unsorted,probability[i-1]));
-                    //System.out.println(probability[i-1]);
-                    break;
-                }
-            }
-        }while(id == position);
-        if(id != TARGET_NUMBER){
-            System.out.println("(" + symbolsName[position] + " --> " + symbolsName[id] + ") ");
-            addCost(visitedRoads,position,id);
-            //System.out.println("I'm going to: " + symbolsName[id]);
-            findWays(id);
-        }else{
-            System.out.println("\nFound! I'm at destination: " + symbolsName[id]);
-            addCost(visitedRoads,position,id);
-            System.out.println("Total price: " + sumOfCost);
-        }
-    }
-    public int indexOf(Double[] array, double value){
-        for (int i = 0; i < array.length; i++) {
-            if (Math.round(array[i] * 10000.0)/10000.0 == Math.round(value * 10000.0)/10000.0) return i;
-        }
-        return (-1);
-    }
-    public void generateNewPheromone(){
-        double[][] newPheromone = new double[7][7];
-        for(int r = 0; r<7; r++){
-            for(int c = 0; c<7; c++){
-                if (visitedRoads[r][c]){
-                    newPheromone[r][c] = (0.5 * pheromone[r][c] + (1/((double) sumOfCost)));
-                }
-            }
-        }
+        System.out.println("Final pheromone:");
         displayPheromone(newPheromone);
+        findTheBestWay();
     }
-    public void displayArray(Double[] arr){
-        for (double v : arr) {
-            System.out.print(v + " ");
-        }
-        System.out.println("\n");
-    }
-    public void displayCost(int[][] matrix){
-        for (int[] ints : matrix) {
-            for (int anInt : ints) {
-                System.out.print(anInt + " ");
+
+    public void findTheBestWay() {
+        System.out.println("---");
+        System.out.println("Found possible ways:");
+        List<String> possibleRoads = new ArrayList<>();
+        List<Character> road = new ArrayList<>();
+        boolean exist = false;
+        int sumOfCost = 0;
+        road.add(symbolsName[START_NUMBER]);
+        for (int r = 0; r < 7; r++) {
+            double max = 0;
+            int maxIndex = 0;
+            for (int c = 0; c < 7; c++) {
+                if (c > r) {
+                    if (newPheromone[r][c] > max) {
+                        max = newPheromone[r][c];
+                        maxIndex = c;
+                    }
+                }
             }
-            System.out.println("\n");
+            if (!road.contains(symbolsName[maxIndex])) {
+                sumOfCost += cost[r][maxIndex];
+                road.add(symbolsName[maxIndex]);
+            }
         }
+        for (Character character : road) {
+            String output = character != symbolsName[TARGET_NUMBER] ? character + " -> " : "" + character + "\n";
+            System.out.print(output);
+        }
+        System.out.println("Cost: " + sumOfCost);
     }
-    public void displayPheromone(double[][] matrix){
+
+    public void displayPheromone(double[][] matrix) {
         for (double[] ints : matrix) {
             for (double anInt : ints) {
                 System.out.print(anInt + " ");
@@ -126,7 +74,8 @@ public class Task {
             System.out.println("\n");
         }
     }
-    public void initCostMatrix(){
+
+    public void initCostMatrix() {
         //                  A   B   C  D  E   F  G
         cost[0] = new int[]{0, 18, 15, 14, 0, 0, 0};
         cost[1] = new int[]{18, 0, 0, 2, 0, 14, 0};
@@ -136,35 +85,34 @@ public class Task {
         cost[5] = new int[]{0, 14, 0, 18, 4, 0, 8};
         cost[6] = new int[]{0, 0, 0, 0, 10, 8, 0};
     }
-    void fillArray(boolean[][] array){
+
+    void fillArray(boolean[][] array) {
         for (int i = 0; i < array.length; i++) {
             for (int i1 = 0; i1 < array.length; i1++) {
                 array[i][i1] = false;
-                //System.out.print(array[i][i1] + " ");
             }
         }
     }
-    void addCost(boolean[][] array, int start, int end){
-        int price = cost[start][end];
-        System.out.println("price is " + price);
-        sumOfCost+=price;
-        array[start][end] = true;
-        array[end][start] = true;
-    }
-    public void displayBoolean(boolean[][] array){
-        for (boolean[] booleans : array) {
-            for (boolean aBoolean : booleans) {
-                System.out.print(aBoolean + " ");
-            }
-            System.out.println("\n");
-        }
-        System.out.println("\n");
-    }
-    public void initPheromoneMatrix(){
+
+    public double[][] addPheromones(double[][] one, double[][] two) {
+        double[][] finalPheromone = new double[7][7];
         for (int r = 0; r < 7; r++) {
-            for(int c = 0; c < 7; c++){
-                pheromone[r][c] = 1.0;
+            for (int c = 0; c < 7; c++) {
+                finalPheromone[r][c] = one[r][c] + two[r][c];
             }
         }
+        return finalPheromone;
+    }
+
+    public double[][] initPheromoneMatrix() {
+        double[][] initPheromone = new double[7][7];
+        for (int r = 0; r < 7; r++) {
+            for (int c = 0; c < 7; c++) {
+                if (cost[r][c] > 0) {
+                    initPheromone[r][c] = 1.0;
+                }
+            }
+        }
+        return initPheromone;
     }
 }
