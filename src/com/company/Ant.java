@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.Random;
 
 public class Ant {
-    private static final double VAPORIZATION_CONSTANT = 0.1;
+    private static final double VAPORIZATION_CONSTANT = 0.5;
     public int[][] cost;
     public double[][] pheromone;
     public boolean[][] visitedRoads = new boolean[7][7];
